@@ -1,15 +1,15 @@
-/// Copyright (c) 2018 Razeware LLC
-///
+/// Copyright (c) 2023 Razeware LLC
+/// 
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
 /// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 /// copies of the Software, and to permit persons to whom the Software is
 /// furnished to do so, subject to the following conditions:
-///
+/// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-///
+/// 
 /// Notwithstanding the foregoing, you may not use, copy, modify, merge, publish,
 /// distribute, sublicense, create a derivative work, and/or sell copies of the
 /// Software in any work that is designed, intended, or marketed for pedagogical or
@@ -17,7 +17,7 @@
 /// or information technology.  Permission for such use, copying, modification,
 /// merger, publication, distribution, sublicensing, creation of derivative works,
 /// or sale is expressly withheld.
-///
+/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,49 +27,44 @@
 /// THE SOFTWARE.
 
 import Foundation
+import UIKit
 
-struct KanjiCache {
-  let kanjiArray: [Kanji]
-  let kanjiDictionary: [String: Kanji]
+class KanjiDetailCoordinator: Coordinator {
+    private let presenter: UINavigationController
+    private var kanjiDetailViewController: KanjiDetailViewController?
+    private var wordKanjiListViewController: KanjiListViewController?
+    private let kanjiStorage: KanjiStorage
+    private let kanji: Kanji
+    
+    init(presenter: UINavigationController,
+         kanji: Kanji,
+         kanjiStorage: KanjiStorage) {
+        
+        self.kanji = kanji
+        self.presenter = presenter
+        self.kanjiStorage = kanjiStorage
+    }
+    
+    func start() {
+        let kanjiDetailViewController = KanjiDetailViewController(nibName: nil, bundle: nil)
+        kanjiDetailViewController.delegate = self
+        kanjiDetailViewController.title = "Kanji details"
+        kanjiDetailViewController.selectedKanji = kanji
+        
+        presenter.pushViewController(kanjiDetailViewController, animated: true)
+        self.kanjiDetailViewController = kanjiDetailViewController
+    }
 }
 
-// Provides kanji data from JSON
-class KanjiStorage {
-  
-  static let kanjiURL = Bundle.main.url(forResource: "knji", withExtension: "json")!
-  
-  private let allKanjiFromJSON: KanjiCache
-  
-  init() {
-    
-    // Parse json and store it's data
-    let data = try! Data(contentsOf: KanjiStorage.kanjiURL)
-    let allKanjis = try! JSONDecoder().decode([Kanji].self, from: data)
-    
-    let kanjiDictionary = allKanjis.reduce([:]) { (dictionary, kanji) -> [String: Kanji] in
-      var dictionary = dictionary
-      dictionary[kanji.character] = kanji
-      return dictionary
+// MARK: - KanjiDetailViewControllerDelegate
+extension KanjiDetailCoordinator: KanjiDetailViewControllerDelegate {
+    func kanjiDetailViewControllerDidSelectWord(_ word: String) {
+        let wordKanjiListViewController = KanjiListViewController(nibName: nil, bundle: nil)
+        wordKanjiListViewController.cellAccessoryType = .none
+        let kanjiForWord = kanjiStorage.kanjiForWord(word)
+        wordKanjiListViewController.kanjiList = kanjiForWord
+        wordKanjiListViewController.title = word
+        
+        presenter.pushViewController(wordKanjiListViewController, animated: true)
     }
-    
-    // Save new cache
-    allKanjiFromJSON = KanjiCache(kanjiArray: allKanjis, kanjiDictionary: kanjiDictionary)
-  }
-  
-  func allKanji() -> [Kanji] {
-    
-    return allKanjiFromJSON.kanjiArray
-  }
-  
-  func kanjiForWord(_ word: String) -> [Kanji] {
-    
-    let kanjiInWord: [Kanji] = word.compactMap { (character) -> Kanji? in
-      
-      let kanjiForCharacter = allKanjiFromJSON.kanjiDictionary["\(character)"]
-      return kanjiForCharacter
-    }
-    
-    return kanjiInWord
-  }
-  
 }

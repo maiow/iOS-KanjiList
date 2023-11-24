@@ -28,7 +28,13 @@
 
 import UIKit
 
+protocol KanjiListViewControllerDelegate: class {
+  func kanjiListViewControllerDidSelectKanji(_ selectedKanji: Kanji)
+}
+
 class KanjiListViewController: UIViewController {
+    
+    weak var delegate: KanjiListViewControllerDelegate?
   
   @IBOutlet weak var kanjiListTableView: UITableView! {
     didSet {
@@ -37,32 +43,13 @@ class KanjiListViewController: UIViewController {
     }
   }
   
-  var kanjiList: [Kanji] = KanjiStorage.sharedStorage.allKanji() {
+  var kanjiList: [Kanji] = [] {
     didSet {
       kanjiListTableView?.reloadData()
     }
   }
   
-  var shouldOpenDetailsOnCellSelection = true
-  
-  var word: String? {
-    didSet {
-      guard let word = word else {
-        return
-      }
-      kanjiList = KanjiStorage.sharedStorage.kanjiForWord(word)
-      title = word
-    }
-  }
-  
-  
-  override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-    guard let detailKanjiViewControler = segue.destination as? KanjiDetailViewController,
-      let kanji = sender as? Kanji else{
-        return
-    }
-    detailKanjiViewControler.selectedKanji = kanji
-  }
+    var cellAccessoryType = UITableViewCellAccessoryType.disclosureIndicator
   
 }
 
@@ -82,22 +69,15 @@ extension KanjiListViewController: UITableViewDataSource, UITableViewDelegate {
     let kanji = kanjiList[indexPath.row]
     cell.textLabel?.text = kanji.character
     cell.detailTextLabel?.text = kanji.meaning
-    cell.accessoryType = shouldOpenDetailsOnCellSelection ? .disclosureIndicator : .none
+    cell.accessoryType = cellAccessoryType
     return cell
   }
   
-  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    
-    defer {
-      tableView.deselectRow(at: indexPath, animated: true)
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let kanji = kanjiList[indexPath.row]
+        delegate?.kanjiListViewControllerDidSelectKanji(kanji)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
-    
-    guard shouldOpenDetailsOnCellSelection == true else {
-      return
-    }
-    let kanji = kanjiList[indexPath.row]
-    performSegue(withIdentifier: "KanjiDetail", sender: kanji)
-  }
   
   
 }
